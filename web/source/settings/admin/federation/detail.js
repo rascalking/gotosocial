@@ -24,7 +24,7 @@ const { useRoute, Redirect, useLocation } = require("wouter");
 
 const query = require("../../lib/query");
 
-const { useTextInput, useBoolInput } = require("../../lib/form");
+const { useValue, useTextInput, useBoolInput } = require("../../lib/form");
 
 const useFormSubmit = require("../../lib/form/submit");
 
@@ -60,13 +60,6 @@ module.exports = function InstanceDetail({ baseUrl }) {
 		infoContent = <Loading />;
 	} else if (existingBlock == undefined) {
 		infoContent = <span>No stored block yet, you can add one below:</span>;
-	} else {
-		infoContent = (
-			<div className="info">
-				<i className="fa fa-fw fa-exclamation-triangle" aria-hidden="true"></i>
-				<b>Editing domain blocks isn't implemented yet, <a href="https://github.com/superseriousbusiness/gotosocial/issues/1198" target="_blank" rel="noopener noreferrer">check here for progress</a></b>
-			</div>
-		);
 	}
 
 	return (
@@ -81,13 +74,6 @@ module.exports = function InstanceDetail({ baseUrl }) {
 function DomainBlockForm({ defaultDomain, block = {}, baseUrl }) {
 	const isExistingBlock = block.domain != undefined;
 
-	const disabledForm = isExistingBlock
-		? {
-			disabled: true,
-			title: "Domain suspensions currently cannot be edited."
-		}
-		: {};
-
 	const form = {
 		domain: useTextInput("domain", { source: block, defaultValue: defaultDomain }),
 		obfuscate: useBoolInput("obfuscate", { source: block }),
@@ -96,6 +82,8 @@ function DomainBlockForm({ defaultDomain, block = {}, baseUrl }) {
 	};
 
 	const [submitForm, addResult] = useFormSubmit(form, query.useAddInstanceBlockMutation(), { changedOnly: false });
+
+	const [updateBlock, updateResult] = useFormSubmit({ id: useValue("id", block.id), ...form }, query.useUpdateInstanceBlockMutation(), { changedOnly: true });
 
 	const [removeBlock, removeResult] = query.useRemoveInstanceBlockMutation({ fixedCacheKey: block.id });
 
@@ -112,42 +100,58 @@ function DomainBlockForm({ defaultDomain, block = {}, baseUrl }) {
 		return submitForm(e);
 	}
 
+	function verifyUrlThenUpdate(e) {
+		// Adding a new block happens on /settings/admin/federation/domain.com
+		// but if domain input changes, that doesn't match anymore and causes issues later on
+		// so, before submitting the form, silently change url, then submit
+		let correctUrl = `${baseUrl}/${form.domain.value}`;
+		if (location != correctUrl) {
+			setLocation(correctUrl);
+		}
+
+		return updateBlock(e);
+	}
+
 	return (
-		<form onSubmit={verifyUrlThenSubmit}>
+		<form onSubmit={isExistingBlock ? verifyUrlThenUpdate : verifyUrlThenSubmit}>
 			<TextInput
 				field={form.domain}
 				label="Domain"
 				placeholder="example.com"
-				{...disabledForm}
 			/>
 
 			<Checkbox
 				field={form.obfuscate}
 				label="Obfuscate domain in public lists"
-				{...disabledForm}
 			/>
 
 			<TextArea
 				field={form.commentPrivate}
 				label="Private comment"
 				rows={3}
-				{...disabledForm}
 			/>
 
 			<TextArea
 				field={form.commentPublic}
 				label="Public comment"
 				rows={3}
-				{...disabledForm}
 			/>
 
 			<div className="action-buttons row">
-				<MutationButton
-					label="Suspend"
-					result={addResult}
-					showError={false}
-					{...disabledForm}
-				/>
+				{ isExistingBlock
+					?
+					<MutationButton
+						label="Update"
+						result={updateResult}
+						showError={false}
+					/>
+					:
+					<MutationButton
+						label="Suspend"
+						result={addResult}
+						showError={false}
+					/>
+				}
 
 				{
 					isExistingBlock &&
@@ -163,6 +167,7 @@ function DomainBlockForm({ defaultDomain, block = {}, baseUrl }) {
 			</div>
 
 			{addResult.error && <Error error={addResult.error} />}
+			{updateResult.error && <Error error={updateResult.error} />}
 			{removeResult.error && <Error error={removeResult.error} />}
 
 		</form>

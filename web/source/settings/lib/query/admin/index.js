@@ -68,6 +68,21 @@ const endpoints = (build) => ({
 		},
 		...replaceCacheOnMutation("instanceBlocks")
 	}),
+	updateInstanceBlock: build.mutation({
+		query: ({ id, ...formData }) => ({
+			method: "PATCH",
+			url: `/api/v1/admin/domain_blocks/${id}`,
+			asForm: true,
+			body: formData,
+			discardEmpty: true
+		}),
+		transformResponse: (data) => {
+			return {
+				[data.domain]: data
+			};
+		},
+		...replaceCacheOnMutation("instanceBlocks")
+	}),
 	removeInstanceBlock: build.mutation({
 		query: (id) => ({
 			method: "DELETE",
