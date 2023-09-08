@@ -81,6 +81,7 @@ func (m *Module) Route(attachHandler func(method string, path string, f ...gin.H
 	attachHandler(http.MethodPost, DomainBlocksPath, m.DomainBlocksPOSTHandler)
 	attachHandler(http.MethodGet, DomainBlocksPath, m.DomainBlocksGETHandler)
 	attachHandler(http.MethodGet, DomainBlocksPathWithID, m.DomainBlockGETHandler)
+	attachHandler(http.MethodPatch, DomainBlocksPathWithID, m.DomainBlockPATCHHandler)
 	attachHandler(http.MethodDelete, DomainBlocksPathWithID, m.DomainBlockDELETEHandler)
 
 	// accounts stuff

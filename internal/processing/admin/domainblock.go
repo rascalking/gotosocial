@@ -268,6 +268,46 @@ func (p *Processor) DomainBlockDelete(ctx context.Context, account *gtsmodel.Acc
 	return apiDomainBlock, nil
 }
 
+func (p *Processor) DomainBlockUpdate(ctx context.Context, id string, form *apimodel.DomainBlockUpdateRequest) (*apimodel.DomainBlock, gtserror.WithCode) {
+	domainBlock, err := p.state.DB.GetDomainBlockByID(ctx, id)
+	if err != nil {
+		if !errors.Is(err, db.ErrNoEntries) {
+			// Real error.
+			err = gtserror.Newf("db error getting domain block: %w", err)
+			return nil, gtserror.NewErrorInternalError(err)
+		}
+
+		// There are just no entries for this ID.
+		err = fmt.Errorf("no domain block entry exists with ID %s", id)
+		return nil, gtserror.NewErrorNotFound(err, err.Error())
+	}
+
+	// TODO: process implications of the values changing
+
+	if form.Domain != nil {
+		domainBlock.Domain = *form.Domain
+	}
+
+	if form.Obfuscate != nil {
+		domainBlock.Obfuscate = form.Obfuscate
+	}
+
+	if form.PrivateComment != nil {
+		domainBlock.PrivateComment = text.SanitizeToPlaintext(*form.PrivateComment)
+	}
+
+	if form.PublicComment != nil {
+		domainBlock.PublicComment = text.SanitizeToPlaintext(*form.PublicComment)
+	}
+
+	if err := p.state.DB.UpdateDomainBlock(ctx, domainBlock); err != nil {
+		err = gtserror.Newf("db error updating domain block %s: %s", domainBlock.Domain, err)
+		return nil, gtserror.NewErrorInternalError(err)
+	}
+
+	return p.apiDomainBlock(ctx, domainBlock)
+}
+
 // stubbifyInstance renders the given instance as a stub,
 // removing most information from it and marking it as
 // suspended.

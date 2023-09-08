@@ -130,6 +130,29 @@ func (d *domainDB) DeleteDomainBlock(ctx context.Context, domain string) error {
 	return nil
 }
 
+func (d *domainDB) UpdateDomainBlock(ctx context.Context, block *gtsmodel.DomainBlock) error {
+	var err error
+
+	// Normalize the domain as punycode
+	block.Domain, err = util.Punify(block.Domain)
+	if err != nil {
+		return err
+	}
+
+	// Attempt to update domain block in DB
+	if _, err := d.db.NewUpdate().
+		Model(block).
+		WherePK().
+		Exec(ctx); err != nil {
+		return err
+	}
+
+	// Clear the domain block cache (for later reload)
+	d.state.Caches.GTS.DomainBlock().Clear()
+
+	return nil
+}
+
 func (d *domainDB) IsDomainBlocked(ctx context.Context, domain string) (bool, error) {
 	// Normalize the domain as punycode
 	domain, err := util.Punify(domain)

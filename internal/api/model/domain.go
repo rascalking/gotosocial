@@ -79,3 +79,17 @@ type DomainBlockCreateRequest struct {
 	// public comment on the reason for the domain block
 	PublicComment string `form:"public_comment" json:"public_comment" xml:"public_comment"`
 }
+
+// DomainBlockUpdateRequest is the form submitted as a PATCH to /api/v1/admin/domain_blocks/<ID> to update an existing block.
+//
+// swagger:model domainBlockUpdateRequest
+type DomainBlockUpdateRequest struct {
+	// hostname/domain to block
+	Domain *string `form:"domain" json:"domain" xml:"domain"`
+	// whether the domain should be obfuscated when being displayed publicly
+	Obfuscate *bool `form:"obfuscate" json:"obfuscate" xml:"obfuscate"`
+	// private comment for other admins on why the domain was blocked
+	PrivateComment *string `form:"private_comment" json:"private_comment" xml:"private_comment"`
+	// public comment on the reason for the domain block
+	PublicComment *string `form:"public_comment" json:"public_comment" xml:"public_comment"`
+}

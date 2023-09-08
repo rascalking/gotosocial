@@ -51,7 +51,8 @@ const endpoints = (build) => ({
 		query: () => ({
 			url: `/api/v1/admin/domain_blocks`
 		}),
-		transformResponse: domainListToObject
+		transformResponse: domainListToObject,
+		providesTags: () => [{ type: "Blocks", id: "LIST" }]
 	}),
 	addInstanceBlock: build.mutation({
 		query: (formData) => ({
@@ -81,7 +82,7 @@ const endpoints = (build) => ({
 				[data.domain]: data
 			};
 		},
-		...replaceCacheOnMutation("instanceBlocks")
+		invalidatesTags: [{ type: "Blocks", id: "LIST" }],
 	}),
 	removeInstanceBlock: build.mutation({
 		query: (id) => ({

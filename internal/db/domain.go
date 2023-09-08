@@ -41,6 +41,9 @@ type Domain interface {
 	// DeleteDomainBlock deletes an instance-level domain block with the given domain, if it exists.
 	DeleteDomainBlock(ctx context.Context, domain string) error
 
+	// UpdateDomainBlock updates an instance-level domain block with the given block.
+	UpdateDomainBlock(ctx context.Context, block *gtsmodel.DomainBlock) error
+
 	// IsDomainBlocked checks if an instance-level domain block exists for the given domain string (eg., `example.org`).
 	IsDomainBlocked(ctx context.Context, domain string) (bool, error)
 
