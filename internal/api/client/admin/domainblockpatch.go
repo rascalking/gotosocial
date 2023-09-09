@@ -29,6 +29,75 @@ import (
 	"github.com/superseriousbusiness/gotosocial/internal/oauth"
 )
 
+// DomainBlocksPATCHHandler swagger:operation PATCH /api/v1/admin/domain_blocks/{id} domainBlockUpdate
+//
+// Updates the domain block with the given ID.
+//
+//			---
+//			tags:
+//			- admin
+//
+//			consumes:
+//			- multipart/form-data
+//
+//			produces:
+//			- application/json
+//
+//			parameters:
+//			-
+//				name: id
+//				type: string
+//				description: The id of the domain block.
+//				in: path
+//				required: true
+//		     -
+//		             name: domain
+//		             in: formData
+//		             description: Domain to block.
+//		             type: string
+//		     -
+//		             name: obfuscate
+//		             in: formData
+//		             description: >-
+//		                     Obfuscate the name of the domain when serving it publicly.
+//		                     Eg., `example.org` becomes something like `ex***e.org`.
+//		             type: boolean
+//		     -
+//		             name: public_comment
+//		             in: formData
+//		             description: >-
+//		                     Public comment about this domain block.
+//		                     This will be displayed alongside the domain block if you choose to share blocks.
+//		             type: string
+//		     -
+//		             name: private_comment
+//		             in: formData
+//		             description: >-
+//		                     Private comment about this domain block. Will only be shown to other admins, so this
+//		                     is a useful way of internally keeping track of why a certain domain ended up blocked.
+//		             type: string
+//
+//		     security:
+//		     - OAuth2 Bearer:
+//		             - admin
+//
+//	     responses:
+//	             '200':
+//	                     description: The newly updated domain block.
+//	                     schema:
+//	                             "$ref": "#/definitions/domainBlock"
+//	             '400':
+//	                     description: bad request
+//	             '401':
+//	                     description: unauthorized
+//	             '403':
+//	                     description: forbidden
+//	             '404':
+//	                     description: not found
+//	             '406':
+//	                     description: not acceptable
+//	             '500':
+//	                     description: internal server error
 func (m *Module) DomainBlockPATCHHandler(c *gin.Context) {
 	authed, err := oauth.Authed(c, true, true, true, true)
 	if err != nil {
@@ -60,7 +129,7 @@ func (m *Module) DomainBlockPATCHHandler(c *gin.Context) {
 	}
 	fmt.Printf("%+v", form)
 
-	domainBlock, errWithCode := m.processor.Admin().DomainBlockUpdate(c.Request.Context(), domainBlockID, form)
+	domainBlock, errWithCode := m.processor.Admin().DomainBlockUpdate(c.Request.Context(), authed.Account, domainBlockID, form)
 	if errWithCode != nil {
 		apiutil.ErrorHandler(c, errWithCode, m.processor.InstanceGetV1)
 		return

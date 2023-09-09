@@ -268,7 +268,10 @@ func (p *Processor) DomainBlockDelete(ctx context.Context, account *gtsmodel.Acc
 	return apiDomainBlock, nil
 }
 
-func (p *Processor) DomainBlockUpdate(ctx context.Context, id string, form *apimodel.DomainBlockUpdateRequest) (*apimodel.DomainBlock, gtserror.WithCode) {
+// DomainBlockUpdate updates one domain block with the given ID.  If the
+// domain name has changed, it processes the side effects of that change
+// (unblocking the original domain, blocking the new domain) asynchronously.
+func (p *Processor) DomainBlockUpdate(ctx context.Context, account *gtsmodel.Account, id string, form *apimodel.DomainBlockUpdateRequest) (*apimodel.DomainBlock, gtserror.WithCode) {
 	domainBlock, err := p.state.DB.GetDomainBlockByID(ctx, id)
 	if err != nil {
 		if !errors.Is(err, db.ErrNoEntries) {
@@ -282,7 +285,8 @@ func (p *Processor) DomainBlockUpdate(ctx context.Context, id string, form *apim
 		return nil, gtserror.NewErrorNotFound(err, err.Error())
 	}
 
-	// TODO: process implications of the values changing
+	originalDomainBlock := new(gtsmodel.DomainBlock)
+	*originalDomainBlock = *domainBlock
 
 	if form.Domain != nil {
 		domainBlock.Domain = *form.Domain
@@ -303,6 +307,13 @@ func (p *Processor) DomainBlockUpdate(ctx context.Context, id string, form *apim
 	if err := p.state.DB.UpdateDomainBlock(ctx, domainBlock); err != nil {
 		err = gtserror.Newf("db error updating domain block %s: %s", domainBlock.Domain, err)
 		return nil, gtserror.NewErrorInternalError(err)
+	}
+
+	if originalDomainBlock.Domain != domainBlock.Domain {
+		p.state.Workers.ClientAPI.Enqueue(func(ctx context.Context) {
+			p.domainUnblockSideEffects(ctx, originalDomainBlock)
+			p.domainBlockSideEffects(ctx, account, domainBlock)
+		})
 	}
 
 	return p.apiDomainBlock(ctx, domainBlock)
